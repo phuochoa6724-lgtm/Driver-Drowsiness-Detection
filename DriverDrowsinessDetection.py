@@ -9,6 +9,11 @@ import dlib
 import math
 import cv2  # Nhập thư viện xử lý ảnh OpenCV (Computer Vision)
 import numpy as np
+import threading
+from datetime import datetime
+import os
+from collections import deque
+from supabase import create_client, Client
 
 # Các module Custom
 from EAR import eye_aspect_ratio
@@ -52,8 +57,90 @@ image_points = np.array([
 
 # Hỗ trợ tự động căn chỉnh lại chu kỳ học theo thời gian
 last_calibration_time = time.time()
-calibration_interval = 300 # Khoảng cách lặp vòng học: 300 giây (5 phút)
+calibration_interval = 60 # Khoảng cách lặp vòng học: 300 giây (5 phút)
 previous_state = "Normal"
+
+# [1] KHỞI TẠO CÁC BIẾN COUNTER TRƯỚC VÒNG LẶP (Supabase Data)
+user_id = "00000000-0000-0000-0000-000000000000" # Nhớ nhập đúng UUID User trong bảng profiles!
+trip_id = "11111111-1111-1111-1111-111111111111" # Nhớ nhập đúng UUID Trip trong bảng trips!
+event_start_time = None
+current_event_type = "Normal"
+total_yawn_count = 0 
+total_head_tilt_count = 0
+total_eye_closed_time = 0.0 # Bằng giây
+alert_sent = False 
+last_sync_time = time.time() # Để test gửi luồng 2
+
+# Tạo thư mục lưu ảnh cảnh báo tự động nếu chưa có
+os.makedirs("temp_alert/images", exist_ok=True)
+os.makedirs("temp_alert/videos", exist_ok=True)
+
+# Bộ đệm để lưu lại 3-4 giây video TRƯỚC VÀ TRONG LÚC vi phạm (khoảng 60 khung hình)
+frame_buffer = deque(maxlen=60)
+
+# CẤU HÌNH SUPABASE (BẠN ĐIỀN KEY CỦA BẠN VÀO ĐÂY)
+SUPABASE_URL = "https://ojnvvvvtwiknqfkrmiqp.supabase.co"
+SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qbnZ2dnZ0d2lrbnFma3JtaXFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5NzE4MzMsImV4cCI6MjA3NzU0NzgzM30.D0JCeCmfr4i90gl1jYeoHi2JwJONqk4fpe9AAOQGgMI"
+supabase_client: Client = create_client(SUPABASE_URL, SUPABASE_KEY) if "eyJ" in SUPABASE_KEY else None
+
+# Hàm thread cập nhật thống kê định kỳ bảng trips
+def update_trip_analytics(trip_id, yawns, head_tilts, eye_closed_time):
+    if supabase_client is None: return
+    try:
+        fatigue_level = "Safe"
+        if eye_closed_time > 15.0 or yawns > 10: fatigue_level = "Khẩn cấp"
+        elif eye_closed_time > 5.0 or yawns > 3 or head_tilts > 5: fatigue_level = "Nguy hiểm"
+        
+        payload = {
+            "total_yawn_count": yawns,
+            "total_eye_closed_time": float(eye_closed_time),
+            "total_head_tilt": head_tilts,
+            "fatigue_level": fatigue_level
+        }
+        supabase_client.table("trips").update(payload).eq("id", trip_id).execute()
+        print(f"-> [SUPABASE-CRON] Đã Update thành công bảng TRIPS!")
+    except Exception as e:
+        print(f"\n[SUPABASE-ERROR] Lỗi khi cập nhật bảng trips: {e}")
+
+# Hàm thread Tích hợp: Vừa xuất video MP4, tải lên Storage, ghi vào bảng alerts
+def process_and_upload_alert(trip_id, user_id, event_type, severity, duration, filename_img, frames_list, filename_vid):
+    if frames_list:
+        height, width, layers = frames_list[0].shape
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter(filename_vid, fourcc, 15.0, (width, height))
+        for f in frames_list: out.write(f)
+        out.release()
+        print(f"\n[LOCAL] Đã xuất video vòng lặp: {filename_vid}")
+
+    if supabase_client is None:
+        print("\n[CẢNH BÁO] Chưa điền API Key Supabase! Hệ thống kết thúc offline.")
+        return
+
+    try:
+        print(f"\n[SUPABASE-SYNC] Đang tải bằng chứng lên đám mây Storage (alerts_media)...")
+        supabase_client.storage.from_("alerts_media").upload(filename_img, filename_img)
+        img_url = supabase_client.storage.from_("alerts_media").get_public_url(filename_img)
+
+        # Tùy chọn video - SQL hiện tại bạn chưa khai báo video_url. Nhớ chạy ALTER TABLE public.alerts ADD COLUMN video_url TEXT; 
+        supabase_client.storage.from_("alerts_media").upload(filename_vid, filename_vid)
+        vid_url = supabase_client.storage.from_("alerts_media").get_public_url(filename_vid)
+
+        # Bắn Data JSON cảnh báo khẩn cấp lên bảng `alerts` chuẩn theo SQL schema
+        data_payload = {
+            "trip_id": trip_id,
+            "user_id": user_id,
+            "alert_type": event_type,
+            "severity": severity,
+            "duration_seconds": float(duration),
+            "image_url": img_url,
+            "video_url": vid_url, 
+            "created_at": datetime.now().isoformat()
+        }
+        
+        response = supabase_client.table("alerts").insert(data_payload).execute()
+        print(f"\n[SUPABASE-SUCCESS] Đã Insert Alert & Gửi Notification cho App thành công!")
+    except Exception as e:
+        print(f"\n[SUPABASE-ERROR] Lỗi API: {e}")
 
 while True:
     frame = vs.read()
@@ -149,19 +236,112 @@ while True:
             cv2.putText(frame, f"AI STATE: {state}", (350, 50),
                         cv2.FONT_HERSHEY_SIMPLEX, 1.2, color, 3)
 
-            # In cảnh báo ra Terminal khi có sự thay đổi trạng thái
-            if state != previous_state:
-                if state == "Drowsy":
-                    print("\n[NGUY HIỂM] TÀI XẾ ĐANG NGỦ GỤC (DROWSY)!")
-                elif state == "Distracted":
-                    print("\n[CẢNH BÁO] TÀI XẾ MẤT TẬP TRUNG (DISTRACTED)!")
-                elif state == "Yawning":
-                    print("\n[NHẮC NHỞ] TÀI XẾ ĐANG NGÁP (YAWNING) - CÓ DẤU HIỆU BUỒN NGỦ!")
-                elif state == "Talking":
-                    print("\n[THÔNG TIN] Tài xế đang nói chuyện (Talking).")
-                elif state == "Normal":
-                    print("\n[THÔNG TIN] Tài xế đã trở lại trạng thái BÌNH THƯỜNG (Normal).")
-                previous_state = state
+            # ==========================================
+            # [VẼ ĐỒ HỌA/OVERLAY LÊN FRAME ĐỂ LƯU KÈM VÀO ẢNH CẢNH BÁO]
+            # ==========================================
+            # Vẽ bảng nền đen mờ để dễ đọc thông số
+            overlay = frame.copy()
+            cv2.rectangle(overlay, (700, 10), (1010, 150), (0, 0, 0), -1)
+            alpha = 0.5
+            cv2.addWeighted(overlay, alpha, frame, 1 - alpha, 0, frame)
+
+            # In số liệu thống kê (Analytics) lên góc phải màn hình
+            cv2.putText(frame, f"TRIP ANALYTICS", (720, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2)
+            cv2.putText(frame, f"Yawns: {total_yawn_count}", (720, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 255, 255), 2)
+            cv2.putText(frame, f"Distracted: {total_head_tilt_count}", (720, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 165, 255), 2)
+            cv2.putText(frame, f"Eyes Closed: {total_eye_closed_time:.1f}s", (720, 130), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+
+            # In thời gian sự kiện nguy hiểm đang diễn ra (nếu có)
+            if current_event_type != "Normal" and event_start_time is not None:
+                current_duration = time.time() - event_start_time
+                alert_text = f"+ {current_duration:.1f}s"
+                color_alert = (0, 0, 255) if current_duration > 2.0 else (0, 165, 255)
+                cv2.putText(frame, alert_text, (350, 95), cv2.FONT_HERSHEY_DUPLEX, 1.2, color_alert, 2)
+
+            # In đồng hồ thời gian thực tế ở góc dưới cùng bên trái
+            current_dt = datetime.now().strftime("%H:%M:%S %d/%m/%Y")
+            cv2.putText(frame, current_dt, (10, 560), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 255, 255), 1, cv2.LINE_AA)
+
+            # ==========================================
+            # [LOGIC 1] ĐẾM THỜI GIAN VÀ BẮT ĐẦU SỰ KIỆN KHẨN CẤP
+            # ==========================================
+            if state != "Normal" and state != "Talking":
+                if current_event_type != state: # Trạng thái mới bắt đầu
+                    current_event_type = state
+                    event_start_time = time.time()
+                    alert_sent = False
+                    
+                    # In log khi bắt đầu trạng thái nguy hiểm
+                    if state == "Drowsy": print("\n[NGUY HIỂM] Có dấu hiệu nhắm mắt (Drowsy)!")
+                    elif state == "Distracted": print("\n[CẢNH BÁO] Mất tập trung (Distracted)!")
+                    elif state == "Yawning": print("\n[NHẮC NHỞ] Đang ngáp (Yawning)!")
+
+                if event_start_time is not None:
+                    # Tính số giây đã trôi qua kể từ lúc bắt đầu nhắm mắt/ngáp/mất tập trung
+                    duration_seconds = time.time() - event_start_time
+                    
+                    # Cảnh báo KHẨN CẤP nếu ngủ gục > 2s hoặc ngáp > 3s (ví dụ)
+                    if current_event_type == "Drowsy" and duration_seconds > 2.0 and not alert_sent:
+                        severity = "emergency" if duration_seconds > 4.0 else "danger"
+                        
+                        # Tạo tên file kèm mốc thời gian (thử mục temp_alert)
+                        filename = f"temp_alert/images/alert_drowsy_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
+                        vid_filename = f"temp_alert/videos/alert_drowsy_{datetime.now().strftime('%Y%m%d_%H%M%S')}.mp4"
+                        cv2.imwrite(filename, frame)
+                        print(f">>> [LƯU ẢNH CAMERA] Lưu file {filename} thành công. Đã ngủ: {duration_seconds:.1f}s")
+                        
+                        # Nhánh Thread xử lý song song Upload và Xuất Video
+                        frames_to_save = list(frame_buffer)
+                        threading.Thread(target=process_and_upload_alert, args=(
+                            trip_id, user_id, "eyes_closed", severity, duration_seconds, filename, frames_to_save, vid_filename
+                        )).start()
+                        alert_sent = True # Chốt, không gửi lặp lại gây spam
+                        
+                    # Gửi cảnh báo mất tập trung nếu trên 4 giây
+                    elif current_event_type == "Distracted" and duration_seconds > 4.0 and not alert_sent:
+                        filename = f"temp_alert/images/alert_distracted_{datetime.now().strftime('%Y%m%d_%H%M%S')}.jpg"
+                        vid_filename = f"temp_alert/videos/alert_distracted_{datetime.now().strftime('%Y%m%d_%H%M%S')}.mp4"
+                        cv2.imwrite(filename, frame)
+                        print(f">>> [LƯU ẢNH CAMERA] Lưu file {filename} do mất tập trung.")
+                        
+                        frames_to_save = list(frame_buffer)
+                        threading.Thread(target=process_and_upload_alert, args=(
+                            trip_id, user_id, "head_tilt", "warning", duration_seconds, filename, frames_to_save, vid_filename
+                        )).start()
+                        alert_sent = True
+                    
+            else: 
+                # TÀI XẾ ĐÃ TRỞ LẠI BÌNH THƯỜNG
+                if current_event_type != "Normal":
+                    duration = time.time() - event_start_time if event_start_time else 0
+                    print(f"\n[THÔNG TIN] Tài xế đã tỉnh / Tập trung lại. Tổng t.gian sự kiện vừa rồi: {duration:.1f}s")
+                    
+                    # Cộng dồn thời gian và số lần vào biến Analytics Trip
+                    if current_event_type == "Drowsy":
+                        total_eye_closed_time += duration
+                    elif current_event_type == "Yawning":
+                        total_yawn_count += 1
+                    elif current_event_type == "Distracted":
+                        total_head_tilt_count += 1
+                        
+                    # Reset lại bộ đếm sự kiện
+                    current_event_type = "Normal"
+                    event_start_time = None
+                    alert_sent = False
+                    
+            # ==========================================
+            # [LOGIC 2] GỬI BẢN BÁO CÁO ĐỊNH KỲ (ANALYTICS)
+            # ==========================================
+            # Giả định: Cứ sau 1 phút sẽ in tổng kết (nếu real thì khoảng 5-10 phút đẩy DB 1 lần tùy cấu hình băng thông)
+            if (time.time() - last_sync_time) > 60: 
+                print(f"\n=== [SUPABASE-ANALYTICS] GỌI API ĐỒNG BỘ BẢNG TRIPS ({trip_id}) ===")
+                threading.Thread(target=update_trip_analytics, args=(trip_id, total_yawn_count, total_head_tilt_count, total_eye_closed_time)).start()
+                last_sync_time = time.time()
+                
+            previous_state = state
+
+    # Đưa frame đã vẽ GIỮA CHỪNG TRƯỚC ĐÓ vào bộ nhớ đệm deque
+    frame_buffer.append(frame.copy())
 
     cv2.imshow("Smart AI DMS Architecture", frame)
     key = cv2.waitKey(1) & 0xFF
