@@ -1,4 +1,5 @@
 from scipy.spatial import distance as dist
+import numpy as np
 
 def eye_aspect_ratio(eye):
     # compute the euclidean distances between the two sets of

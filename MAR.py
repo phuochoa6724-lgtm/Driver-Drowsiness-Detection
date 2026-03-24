@@ -1,5 +1,5 @@
 from scipy.spatial import distance as dist
-
+import numpy as np
 def mouth_aspect_ratio(mouth):
     # compute the euclidean distances between the two sets of
     # vertical mouth landmarks (x, y)-coordinates
