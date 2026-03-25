@@ -1,28 +1,42 @@
-# Driver Drowsiness Detection (Dự án Phát hiện Ngủ gật)
+# Driver Monitoring System (DMS) - Phát hiện Ngủ gật & Mất tập trung
 
-Dưới đây là danh sách các thư viện cần thiết để có thể chạy dự án này thành công. 
+Hệ thống giám sát tài xế (DMS) sử dụng trí tuệ nhân tạo (AI) để theo dõi trạng thái của người lái xe trong thời gian thực, nhằm phát hiện sớm các dấu hiệu mệt mỏi, ngủ gật hoặc mất tập trung để đưa ra cảnh báo kịp thời.
 
-## 📦 Danh sách thư viện (Dependencies)
+## 🛠 Cấu trúc Dự án (Modular Architecture)
 
-Để chương trình hoạt động bình thường, bạn cần đảm bảo các thư viện sau đã được cài đặt trong môi trường Python của mình (khuyên dùng thông qua `pip`):
+Dự án được thiết kế theo dạng module hóa để dễ dàng bảo trì và mở rộng:
 
-1. **`numpy`**: Thư viện xử lý mảng (array) và tính toán đại số tuyến tính.
-2. **`scipy`**: Dùng để tính toán khoảng cách Euclidean giữa các điểm ảnh trên mắt và miệng (EAR, MAR).
-3. **`opencv-python`** (`cv2`): Thư viện mã nguồn mở dùng cho việc xử lý ảnh, thu thập và hiển thị video từ Camera.
-4. **`imutils`**: Thư viện hỗ trợ OpenCV giúp thuận tiện hơn trong các thao tác đọc luồng video, thao tác trên khung hình gốc.
-5. **`dlib`**: Cực kỳ quan trọng, được dùng để trích xuất 68 điểm đặc trưng trên khuôn mặt (Facial Landmark - nhận diện mắt, miệng, mũi,...). 
-6. **`tensorflow` / `keras`**: Framwork học sâu (Deep Learning), sẽ được sử dụng cho việc load model phục vụ dự án nhận diện (`dms_model_int8.tflite`).
-7. **`supabase`**: Thư viện backend-as-a-service để lưu trữ kết quả phân tích hoặc thu thập dữ liệu về máy chủ cơ sở dữ liệu.
+*   **`DriverDrowsinessDetection.py`**: File thực thi chính. Quản lý luồng xử lý tổng thể từ Camera đến kết quả cuối cùng.
+*   **`Backend.py`**: Quản lý kết nối với **Supabase**. Chịu trách nhiệm đồng bộ dữ liệu hành trình và tải lên (upload) các bằng chứng cảnh báo (ảnh/video).
+*   **`AlertHandler.py`**: Bộ quản lý sự kiện. Theo dõi thời gian diễn ra của các trạng thái (Ngủ gật, Ngáp, Mất tập trung), ghi lại video MP4 và kích hoạt tiến trình báo cáo.
+*   **`UIHelper.py`**: Chuyên trách hiển thị thông tin lên màn hình (Overlay), bao gồm trạng thái AI, đồng hồ, và các thông số kỹ thuật.
+*   **Các Module Tính năng**:
+    *   `Calibration.py`: Hiệu chuẩn các chỉ số cá nhân hóa cho từng driver.
+    *   `PredictMaker.py`: Chạy mô hình TFLite để dự đoán trạng thái dựa trên dữ liệu chuỗi thời gian.
+    *   `EAR.py`, `MAR.py`: Tính toán tỷ lệ mắt (Eye Aspect Ratio) và miệng (Mouth Aspect Ratio).
+    *   `HeadPose.py`: Ước tính tư thế đầu (pitch, yaw, roll).
 
-## 🚀 Lệnh cài đặt nhanh
+## ⚙️ Luồng hoạt động của hệ thống (Execution Flow)
 
-Bạn có thể sao chép và dán lệnh sau vào Terminal (hoặc Command Prompt) để cài đặt toàn bộ các thư viện cần thiết bằng lệnh `pip`:
+Vòng lặp chính trong `DriverDrowsinessDetection.py` hoạt động theo 8 bước:
 
-```bash
-pip install numpy scipy opencv-python imutils dlib tensorflow supabase
-```
+1.  **Đọc Frame**: Thu nhận hình ảnh từ Camera và tiền xử lý (resize, grayscale).
+2.  **Nhận diện Driver**: Sử dụng dlib để tìm khuôn mặt và mã hóa (face encoding) để đảm bảo chỉ theo dõi người lái.
+3.  **Xử lý Mất khuôn mặt**: Nếu không thấy mặt trong một khoảng thời gian, hệ thống ghi nhận trạng thái **Distracted**.
+4.  **Trích xuất Đặc trưng**: Tính toán các chỉ số EAR, MAR và Head Pose từ 68 điểm mốc (landmarks).
+5.  **Hiệu chuẩn (Calibration)**: Trong 100 frame đầu, hệ thống "học" các chỉ số cơ bản của tài xế khi ở trạng thái bình thường.
+6.  **Dự đoán trạng thái (AI Prediction)**: Sau khi hiệu chuẩn, AI sẽ phân loại trạng thái: *Normal, Drowsy, Yawning, Distracted, Talking*.
+7.  **Quản lý Cảnh báo**: Nếu trạng thái bất thường kéo dài vượt ngưỡng (ví dụ: ngủ gật > 1.5s), hệ thống sẽ tự động chụp ảnh và quay video bằng chứng.
+8.  **Đồng bộ Backend**: Gửi dữ liệu thống kê tổng hợp lên hệ thống quản lý mỗi 60 giây.
 
-> **Lưu ý nhỏ về `dlib`**:
-> Để cài đặt thư viện `dlib` thành công (đặc biệt là trên Windows hoặc Linux), thường hệ thống thường yêu cầu phải có trình biên dịch bằng C++ (như Visual Studio C++ Build Tools) và phần mềm **CMake** được cấu hình sẵn trong biến môi trường.
+## 🚀 Hướng dấn sử dụng
 
-*Bạn cũng có thể copy danh sách ở trên đưa vào file `requirements.txt` để thuận tiện cho việc thiết lập cho các lần sau.*
+1.  **Cài đặt thư viện**: Xem chi tiết danh sách và lệnh cài đặt tại [library.md](file:///home/nph/Downloads/Driver-Drowsiness-Detection/library.md).
+2.  **Cấu hình**: Cung cấp các biến môi trường `SUPABASE_URL`, `SUPABASE_KEY` và các ID cần thiết trong file `.env`.
+3.  **Chạy dự án**:
+    ```bash
+    python3 DriverDrowsinessDetection.py
+    ```
+
+## 🎥 Dữ liệu Cảnh báo
+Các ảnh và video được tạo ra trong quá trình cảnh báo sẽ được lưu tạm thời tại thư mục `temp_alert/` trước khi được tải lên cloud.
