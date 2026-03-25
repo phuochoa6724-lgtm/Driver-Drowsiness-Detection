@@ -12,6 +12,10 @@ import numpy as np
 import threading
 from datetime import datetime
 import os
+from dotenv import load_dotenv  # Thư viện đọc biến môi trường từ file .env
+
+# Tự động nạp các biến môi trường từ file .env vào os.environ
+load_dotenv()
 from collections import deque
 from supabase import create_client, Client
 
@@ -61,8 +65,9 @@ calibration_interval = 60 # Khoảng cách lặp vòng học: 300 giây (5 phút
 previous_state = "Normal"
 
 # [1] KHỞI TẠO CÁC BIẾN COUNTER TRƯỚC VÒNG LẶP (Supabase Data)
-user_id = "00000000-0000-0000-0000-000000000000" # Nhớ nhập đúng UUID User trong bảng profiles!
-trip_id = "11111111-1111-1111-1111-111111111111" # Nhớ nhập đúng UUID Trip trong bảng trips!
+# Đọc UUID từ file .env thay vì hardcode trực tiếp vào code
+user_id = os.getenv("USER_ID", "00000000-0000-0000-0000-000000000000")  # UUID mặc định nếu không tìm thấy trong .env
+trip_id = os.getenv("TRIP_ID", "11111111-1111-1111-1111-111111111111")  # UUID mặc định nếu không tìm thấy trong .env
 event_start_time = None
 current_event_type = "Normal"
 total_yawn_count = 0 
@@ -78,10 +83,17 @@ os.makedirs("temp_alert/videos", exist_ok=True)
 # Bộ đệm để lưu lại 3-4 giây video TRƯỚC VÀ TRONG LÚC vi phạm (khoảng 60 khung hình)
 frame_buffer = deque(maxlen=60)
 
-# CẤU HÌNH SUPABASE (BẠN ĐIỀN KEY CỦA BẠN VÀO ĐÂY)
-SUPABASE_URL = "https://ojnvvvvtwiknqfkrmiqp.supabase.co"
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9qbnZ2dnZ0d2lrbnFma3JtaXFwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE5NzE4MzMsImV4cCI6MjA3NzU0NzgzM30.D0JCeCmfr4i90gl1jYeoHi2JwJONqk4fpe9AAOQGgMI"
-supabase_client: Client = create_client(SUPABASE_URL, SUPABASE_KEY) if "eyJ" in SUPABASE_KEY else None
+# CẤU HÌNH SUPABASE - Key được đọc từ file .env, KHÔNG hardcode ở đây!
+SUPABASE_URL = os.getenv("SUPABASE_URL", "")  # Đọc URL từ biến môi trường
+SUPABASE_KEY = os.getenv("SUPABASE_KEY", "")  # Đọc API Key từ biến môi trường
+
+# Chỉ khởi tạo Supabase client nếu cả hai biến đều đã được cấu hình
+if not SUPABASE_URL or not SUPABASE_KEY:
+    print("[CẢNH BÁO] Chưa cấu hình SUPABASE_URL hoặc SUPABASE_KEY trong file .env!")
+    print("           Hãy sao chép file .env.example thành .env và điền thông tin vào.")
+    supabase_client = None
+else:
+    supabase_client: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Hàm thread cập nhật thống kê định kỳ bảng trips
 def update_trip_analytics(trip_id, yawns, head_tilts, eye_closed_time):
