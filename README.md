@@ -15,7 +15,7 @@ Hệ thống giám sát tài xế (DMS) sử dụng trí tuệ nhân tạo (AI) 
 *   **🥱 Nhận Diện Ngáp (Yawning):** Phân tích MAR (Mouth Aspect Ratio) để phát hiện hành vi ngáp thường xuyên, là dấu hiệu của sự mệt mỏi.
 *   **📵 Giám Sát Mất Tập Trung (Distraction):** Theo dõi tư thế đầu (Head Pose - Yaw, Pitch, Roll) để cảnh báo khi tài xế không nhìn đường hoặc sử dụng điện thoại.
 *   **🗣️ Nhận Diện Nói Chuyện (Talking):** Phân loại hành động nói chuyện để phân tích mức độ tập trung.
-*   **🔊 Cảnh Báo Âm Thanh Tiếng Việt:** Phát thông báo bằng giọng nói tự nhiên (gTTS/PyGame) khi phát hiện nguy cơ.
+*   **🔊 Cảnh Báo Âm Thanh Tiếng Việt:** Phát thông báo bằng giọng nói tự nhiên (gTTS/PyGame) khi phát hiện nguy cơ (Ví dụ: "Đang phân tích hình ảnh. Vui lòng nhìn thẳng về phía trước" khi bắt đầu hiệu chuẩn).
 *   **🛡️ Nhận Diện Driver Duy Nhất:** Sử dụng Face Recognition (Dlib) để chỉ theo dõi đúng khuôn mặt của tài xế đã được cấu hình/hiệu chuẩn.
 *   **☁️ Đồng Bộ Cloud (Supabase):** Tự động tải báo cáo, ảnh chụp bằng chứng và clip video 3 giây khi có sự cố lên hệ thống quản lý.
 *   **🛠️ Cá Nhân Hóa (Calibration):** Chế độ hiệu chuẩn tự động trong 100 khung hình đầu tiên để phù hợp với từng gương mặt tài xế khác nhau.
