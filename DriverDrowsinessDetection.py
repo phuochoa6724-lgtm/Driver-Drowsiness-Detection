@@ -116,7 +116,7 @@ try:
                 alert_handler.process_state("Distracted", frame, frame_buffer)
                 if alert_handler.current_event == "Distracted":
                     dur = time.time() - alert_handler.start_time
-                    ui.draw_warning_text(frame, f"NO FACE: {dur:.1f}s")
+                    ui.draw_warning_text(frame, f"Distracted: {dur:.1f}s")
             
             # Cập nhật buffer và tiếp tục vòng lặp
             frame_buffer.append(frame.copy())

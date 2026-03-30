@@ -110,16 +110,11 @@ class AlertHandler:
                     # Sử dụng audio_channel duy nhất để không bị phát đè âm thanh
                     self.audio_channel.play(self.sounds[state])
         else:
-            # Khi trạng thái trở về bình thường, sử dụng Grace Period để xem có phải do nhấp nháy không
+            # Khi trạng thái trở về bình thường, kết thúc sự kiện cũ ngay lập tức
             if self.current_event not in ["Normal", "Talking"]:
-                if self.normal_grace_start is None:
-                    self.normal_grace_start = time.time()
-                
-                # Cần duy trì trạng thái Normal/Talking > 0.3s mới thực sự kết thúc sự kiện cũ
-                if (time.time() - self.normal_grace_start) > 0.3:
-                    self._end_current_event()
-                    self.current_event = "Normal"
-                    self.normal_grace_start = None
+                self._end_current_event()
+                self.current_event = "Normal"
+                self.normal_grace_start = None
             else:
                 self.current_event = "Normal"
                 self.normal_grace_start = None

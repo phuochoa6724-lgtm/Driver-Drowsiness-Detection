@@ -17,7 +17,7 @@ Hệ thống giám sát tài xế (DMS) sử dụng trí tuệ nhân tạo (AI) 
 *   **🗣️ Nhận Diện Nói Chuyện (Talking):** Phân loại hành động nói chuyện để phân tích mức độ tập trung.
 *   **🔊 Cảnh Báo Âm Thanh Tiếng Việt:** Phát thông báo bằng giọng nói tự nhiên (gTTS/PyGame) khi phát hiện nguy cơ.
 *   **🛡️ Nhận Diện Driver Duy Nhất:** Sử dụng Face Recognition (Dlib) để chỉ theo dõi đúng khuôn mặt của tài xế.
-*   **⚖️ Lọc Nhiễu Chống Nhấp Nháy (Anti-Flicker):** Áp dụng Hysteresis và Grace Period để tránh việc AI chập chờn khi tài xế giữ nguyên một trạng thái (Ví dụ: há miệng ngáp lâu không bị ngắt quãng).
+*   **⚖️ Lọc Nhiễu Chống Nhấp Nháy (Anti-Flicker):** Áp dụng Hysteresis để tránh việc AI chập chờn khi tài xế giữ nguyên một trạng thái (Ví dụ: há miệng ngáp lâu không bị ngắt quãng).
 *   **☁️ Đồng Bộ Cloud (Supabase):** Tự động tải báo cáo, ảnh chụp bằng chứng và clip video 3 giây.
 *   **🛠️ Cá Nhân Hóa (Calibration):** Chế độ hiệu chuẩn tự động trong 100 khung hình đầu tiên.
 
