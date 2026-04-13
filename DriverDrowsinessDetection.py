@@ -41,8 +41,8 @@ calibrator = Calibrator(required_frames=100)
 # để tính trung bình cộng EAR nhanh hơn, giảm hẳn độ trễ cập nhật.
 decision_maker = DecisionMaker(window_size=15, model_path="Models/dms_model_int8.tflite")
 
-# Tham số luồng video
-frame_width, frame_height = 480, 480
+# Tham số luồng video (Giảm tối đa xuống 320 để Jetson Nano xử lý nhanh gấp đôi)
+frame_width, frame_height = 320, 320
 image_points = np.zeros((6, 2), dtype="double")
 (lStart, lEnd) = face_utils.FACIAL_LANDMARKS_IDXS["left_eye"]
 (rStart, rEnd) = face_utils.FACIAL_LANDMARKS_IDXS["right_eye"]
@@ -64,6 +64,7 @@ time.sleep(2.0)
 
 # Khởi tạo biến theo dõi khuôn mặt tài xế
 last_driver_rect = None
+cached_rects = [] # Bộ nhớ tạm lưu khung mặt cho Frame Skipping
 
 try:
     while True:
@@ -73,7 +74,14 @@ try:
         frame = imutils.resize(frame, width=frame_width, height=frame_height)
         frame_count += 1
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        rects = detector(gray, 0)
+        
+        # CƠ CHẾ FRAME SKIPPING - Giảm tải CPU
+        # Cứ 1 frame tiến hành phát hiện khuôn mặt, 2 frame tiếp theo sẽ dùng lại kết quả cũ
+        if frame_count % 3 == 1 or len(cached_rects) == 0:
+            rects = detector(gray, 0)
+            cached_rects = rects
+        else:
+            rects = cached_rects
         
         # Hiển thị đồng hồ thời gian thực
         ui.draw_clock(frame)

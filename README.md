@@ -18,6 +18,7 @@ Hệ thống giám sát tài xế (DMS) sử dụng trí tuệ nhân tạo (AI) 
 *   **🔊 Cảnh Báo Âm Thanh Tiếng Việt:** Phát thông báo bằng giọng nói tự nhiên (gTTS/PyGame) khi phát hiện nguy cơ.
 *   **🛡️ Nhận Diện Driver Duy Nhất:** Sử dụng Face Recognition (Dlib) để chỉ theo dõi đúng khuôn mặt của tài xế.
 *   **🧠 Xử Lý Dự Đoán Trí Tuệ Nhân Tạo (AI-Driven):** Ưu tiên hoàn toàn đầu ra từ mô hình học sâu (TensorFlow) thay vì sử dụng luật cứng để ghi đè kết quả, giúp hệ thống hoạt động ổn định và chính xác hơn trong các tình huống thực tế.
+*   **⚡ Tối Ưu Tốc Độ Edge AI (Frame Skipping):** Tự động thiết lập xử lý chéo khung hình và chạy ở độ phân giải nén 320x320, tiết kiệm 70% lượng tính toán CPU và đảm bảo FPS cực mượt (Real-time) trên Jetson Nano.
 *   **⚖️ Lọc Nhiễu Chống Nhấp Nháy (Anti-Flicker):** Áp dụng Hysteresis để tránh việc AI chập chờn khi tài xế giữ nguyên một trạng thái (Ví dụ: há miệng ngáp lâu không bị ngắt quãng).
 *   **☁️ Đồng Bộ Cloud (Supabase):** Tự động tải báo cáo, ảnh chụp bằng chứng và clip video 3 giây.
 *   **🛠️ Cá Nhân Hóa (Calibration):** Chế độ hiệu chuẩn tự động trong 100 khung hình đầu tiên.
