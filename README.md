@@ -63,6 +63,10 @@ Dự án được thiết kế theo dạng module hóa để dễ dàng bảo tr
 ```bash
 pip install opencv-python numpy dlib pygame gtts supabase python-dotenv imutils scipy
 ```
+*(Lưu ý: Để ứng dụng chạy được Mô hình AI TFLite thay vì Thuật toán dự phòng, bạn cần cài đặt thêm thư viện TensorFlow hoặc tflite-runtime)*:
+- **Trên máy tính (PC):** `pip install tensorflow`
+- **Trên thiết bị nhúng (Jetson Nano/Raspberry Pi):** `pip install tflite-runtime`
+
 *(Nếu cài đặt `dlib` gặp lỗi, hãy đảm bảo bạn đã cài `cmake` và `build-essential` trên Linux)*.
 
 ### 3. Tải các Model cần thiết

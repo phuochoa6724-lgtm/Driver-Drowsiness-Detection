@@ -31,8 +31,9 @@ class DecisionMaker:
         self.yaw_buffer = deque(maxlen=window_size)      # Góc quay ngang đầu (trái/phải)
         self.pitch_raw_buffer = deque(maxlen=window_size)  # Góc pitch thô có dấu (để phân biệt nhìn lên/xuống)
         
-        # BỘ LỌC LÀM MƯỢT (Smoothing): Lưu lịch sử 15 trạng thái gần nhất để lấy số đông
-        self.smoothing_window = 15
+        # BỘ LỌC LÀM MƯỢT (Smoothing): Lưu lịch sử 5 trạng thái gần nhất để lấy số đông
+        # (Giảm từ 15 xuống 5 để phù hợp với Jetson Nano có FPS thấp, giúp ngắt trạng thái nhanh hơn tầm 1-2s)
+        self.smoothing_window = 5
         self.state_history = deque(maxlen=self.smoothing_window)
         
         # Danh sách các nhãn phân loại đầu ra của hệ thống
@@ -152,21 +153,9 @@ class DecisionMaker:
             # 2. Hoặc mô phỏng AI bằng quy tắc tĩnh toán học
             state = self._heuristic_fallback(features)
         
-        # 3. Các luật cứng (hardcoded rules) ghi đè kết quả AI đã được loại bỏ 
-        # để tôn trọng hoàn toàn suy luận từ mô hình TensorFlow.
-        # Chỉ giữ lại cơ chế Hysteresis (Ngưỡng trễ) cho trạng thái Ngáp
-        # nhằm giúp người dùng khi "há to miệng giữ nguyên" sẽ không bị chập chờn.
-        last_common = "Normal"
-        if len(self.state_history) > 0:
-            last_common = max(set(self.state_history), key=list(self.state_history).count)
-        
-        current_mar = self.mar_buffer[-1] if self.mar_buffer else 0.0
-        yawning_threshold = 0.20 if last_common == "Yawning" else 0.25
-                
-        if current_mar > yawning_threshold:
-            state = "Yawning"
+
             
-        # 4. BỘ LỌC LÀM MƯỢT (Smoothing): Majority Voting
+        # 3. BỘ LỌC LÀM MƯỢT (Smoothing): Majority Voting
         # Lưu trạng thái thô vào lịch sử
         self.state_history.append(state)
         
