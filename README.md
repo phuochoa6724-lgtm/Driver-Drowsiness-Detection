@@ -14,11 +14,11 @@
 
 ## ✨ Tính Năng Nổi Bật
 
-- **👁️ Giám sát hành vi theo thời gian thực:** Phân tích dữ liệu EAR và MAR để phát hiện chính xác trạng thái nhắm mắt, ngủ gật và ngáp.
-- **📵 Cảnh báo mất tập trung:** Dựa trên các góc xoay đầu (Head Pose) để nhận diện khi tài xế không nhìn đường hoặc sử dụng điện thoại.
-- **🎯 Bám sát cá nhân hóa:** Tích hợp nhận diện Face ID độc lập qua cơ chế *Calibration* giúp điều chỉnh sai số cá nhân.
-- **⚡ Phản hồi siêu tốc với Edge-AI:** Triển khai bằng mô hình mạng Neural lượng tử (*INT8*) 8.7KB kết hợp chiến lược *Frame Skipping*, đảm bảo tối đa hiệu suất trên *Jetson Nano*.
-- **☁️ Đồng bộ đám mây lập tức:** Cập nhật báo cáo hành trình định kỳ và tự động upload video bằng chứng của tài xế lên hệ thống Supabase.
+- **Giám sát hành vi theo thời gian thực:** Phân tích dữ liệu EAR và MAR để phát hiện chính xác trạng thái nhắm mắt, ngủ gật và ngáp.
+- **Cảnh báo mất tập trung:** Dựa trên các góc xoay đầu (Head Pose) để nhận diện khi tài xế không nhìn đường hoặc sử dụng điện thoại.
+- **Bám sát cá nhân hóa:** Tích hợp nhận diện Face ID độc lập qua cơ chế *Calibration* giúp điều chỉnh sai số cá nhân.
+- **Phản hồi siêu tốc với Edge-AI:** Triển khai bằng mô hình mạng Neural lượng tử (*INT8*) 8.7KB kết hợp chiến lược *Frame Skipping*, đảm bảo tối đa hiệu suất trên *Jetson Nano*.
+- **Đồng bộ đám mây lập tức:** Cập nhật báo cáo hành trình định kỳ và tự động upload video bằng chứng của tài xế lên hệ thống Supabase.
 
 ## 🛠 Công Nghệ Sử Dụng
 
@@ -32,7 +32,7 @@
 
 ```
 Driver-Drowsiness-Detection/
-├── main.py                     # 🚀 Entry point — chạy ứng dụng tại đây
+├── main.py                     # Entry point — chạy ứng dụng tại đây
 ├── src/
 │   ├── core/                   # Logic nghiệp vụ cốt lõi
 │   │   ├── backend.py          # Kết nối Supabase, đồng bộ dữ liệu
@@ -51,16 +51,11 @@ Driver-Drowsiness-Detection/
 │   └── dlib/                   # shape_predictor + face_recognition .dat
 ├── assets/
 │   ├── audio/                  # File âm thanh cảnh báo (.mp3)
-│   └── images/                 # Hình ảnh tĩnh
+│   ├── images/                 # Hình ảnh tĩnh
 ├── training/
 │   ├── train_model.py          # Script huấn luyện model
 │   └── data/                   # Dataset (Closed_Eyes, Yawn, head_pose/...)
-├── configs/
-│   └── default_config.py       # Cấu hình trung tâm (ngưỡng, đường dẫn)
-├── tests/                      # Unit tests
 ├── logs/                       # Logs runtime (gitignored)
-├── scripts/
-│   └── create_sound.py         # Script tiện ích tạo âm thanh
 ├── .env.example                # Mẫu biến môi trường
 └── temp_alert/                 # Lưu tạm video cảnh báo (gitignored)
 ```
@@ -76,9 +71,8 @@ pip install opencv-python numpy dlib pygame gtts supabase python-dotenv imutils 
 - Tải weights cho Dlib và đặt vào folder `models/dlib/`:
   - `shape_predictor_68_face_landmarks.dat`
   - `dlib_face_recognition_resnet_model_v1.dat`
-- Tạo file `.env` từ `.env.example` và thiết lập kết nối:
+- Tạo file `.env`  và thiết lập kết nối:
 ```bash
-cp .env.example .env
 # Chỉnh sửa file .env để điền SUPABASE_URL và SUPABASE_KEY
 ```
 
