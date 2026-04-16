@@ -17,7 +17,7 @@ class UIHelper:
         """
         Hiển thị trạng thái AI hiện tại (Normal, Drowsy, Distracted, Yawning).
         """
-        cv2.putText(frame, f"STATE: {state}", (140, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+        cv2.putText(frame, f"STATE: {state}", (100, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)
 
     def draw_analytics(self, frame, yawns, head_tilts, eye_time, pitch):
         """
@@ -27,32 +27,30 @@ class UIHelper:
         - eye_time: Tổng thời gian nhắm mắt
         - pitch: Góc cúi đầu hiện tại
         """
-        cv2.putText(frame, f"Y: {yawns} ", (430, 80), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255,255,255), 1)
-        cv2.putText(frame, f"D: {head_tilts}", (430, 100), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255,255,255), 1)
-        cv2.putText(frame, f"E: {eye_time:.1f}s", (430, 120), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255,255,255), 1)
-        cv2.putText(frame, f"P: {pitch:.1f}deg", (430, 140), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255,255,255), 1)
+        cv2.putText(frame, f"Y: {yawns} ", (5, 160), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255,255,255), 1)
+        cv2.putText(frame, f"D: {head_tilts}", (5, 180), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255,255,255), 1)
+        cv2.putText(frame, f"E: {eye_time:.1f}s", (5, 200), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255,255,255), 1)
+        cv2.putText(frame, f"P: {pitch:.1f}deg", (5, 220), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255,255,255), 1)
 
     def draw_clock(self, frame):
         """
         Hiển thị đồng hồ thời gian thực ở góc dưới bên phải.
-        TỐI ƯU: Chỉ gọi datetime.now() + strftime() mỗi 1 giây,
-        các frame còn lại dùng lại chuỗi đã cache để tiết kiệm CPU.
         """
         now = time.time()
         # Chỉ cập nhật chuỗi thời gian khi đã qua ít nhất 1 giây
         if now - self._last_clock_update >= 1.0:
             self._cached_clock_text = datetime.now().strftime("%H:%M:%S %d/%m/%Y")
             self._last_clock_update = now
-        cv2.putText(frame, self._cached_clock_text, (330, 260), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
+        cv2.putText(frame, self._cached_clock_text, (5, 240), cv2.FONT_HERSHEY_SIMPLEX, 0.4, (255, 255, 255), 1)
 
     def draw_calibration_progress(self, frame, progress):
         """
         Hiển thị thanh tiến trình khi hệ thống đang học khuôn mặt driver (Calibration).
         """
-        cv2.putText(frame, f"LEARNING: {progress*100:.1f}%", (150, 240), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,255), 2)
+        cv2.putText(frame, f"LEARNING: {progress*100:.1f}%", (100, 55), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0,255,255), 2)
 
     def draw_warning_text(self, frame, text, color=(0,0,255)):
         """
         Hiển thị các văn bản cảnh báo ở giữa màn hình.
         """
-        cv2.putText(frame, text, (150, 240), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+        cv2.putText(frame, text, (100, 220), cv2.FONT_HERSHEY_SIMPLEX, 0.6, color, 2)

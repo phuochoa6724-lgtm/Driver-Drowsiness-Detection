@@ -46,10 +46,10 @@ class Calibrator:
             if len(self.face_encodings) > 0:
                 self.driver_encoding = np.mean(self.face_encodings, axis=0)
                 print(f"[CALIBRATION] Đã hiệu chuẩn xong: EAR = {self.ear_baseline:.3f}, MAR = {self.mar_baseline:.3f}, Pitch chuẩn = {self.pitch_raw_baseline:.1f}°")
-                print(f"[FACE-ID] Đã lưu dấu vân mặt tài xế ({len(self.face_encodings)} mẫu, vector 128-D)")
+                print(f"[FACE-ID] Đã lưu gương mặt tài xế ({len(self.face_encodings)} mẫu, vector 128-D)")
             else:
                 print(f"[CALIBRATION] Đã hiệu chuẩn xong: EAR = {self.ear_baseline:.3f}, MAR = {self.mar_baseline:.3f}, Pitch chuẩn = {self.pitch_raw_baseline:.1f}°")
-                print(f"[FACE-ID] CẢNH BÁO: Không thu thập được face encoding nào!")
+                print(f"[FACE-ID] CẢNH BÁO: Không thu thập được gương mặt tài xế!")
             return True
             
         return False
