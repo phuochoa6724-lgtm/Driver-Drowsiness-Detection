@@ -1,4 +1,4 @@
-# Driver Drowsiness Detection (DMS)
+# DRIVER DROWSINESS DETECTION 
 > Hệ thống giám sát tài xế AI thời gian thực - Cảnh báo thông minh, bảo vệ hành trình.
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
@@ -12,7 +12,7 @@
   <img src="assets/images/IOT18A-Group5.png" alt="DMS Preview" width="1000"/>
 </div>
 
-## Tính Năng Nổi Bật
+## TÍNH NĂNG NỔI BẬT
 
 - **Giám sát hành vi theo thời gian thực:** Phân tích dữ liệu EAR và MAR để phát hiện chính xác trạng thái nhắm mắt, ngủ gật và ngáp.
 - **Cảnh báo mất tập trung:** Dựa trên các góc xoay đầu (Head Pose) để nhận diện khi tài xế không nhìn đường hoặc sử dụng điện thoại.
@@ -20,7 +20,7 @@
 - **Phản hồi siêu tốc với Edge-AI:** Triển khai bằng mô hình mạng Neural lượng tử (*INT8*) 8.7KB kết hợp chiến lược *Frame Skipping*, đảm bảo tối đa hiệu suất trên *Jetson Nano*.
 - **Đồng bộ đám mây & Lưu trữ Offline:** Cập nhật báo cáo hành trình định kỳ và tự động upload video bằng chứng lên hệ thống Supabase. Khi mất kết nối mạng (Offline), hệ thống tự động lưu trữ bằng chứng vào các file `.csv` trong thư mục `logs/`.
 
-## 🛠 Công Nghệ Sử Dụng
+## CÔNG NGHỆ SỬ DỤNG
 
 - **Ngôn ngữ:** Python 3.8+
 - **Computer Vision:** OpenCV, Dlib, Imutils
@@ -28,7 +28,7 @@
 - **Cloud & Storage:** Supabase (PostgreSQL / Buckets)
 - **Utilities:** PyGame, gTTS
 
-## 📁 Cấu Trúc Dự Án
+## CẤU TRÚC DỰ ÁN
 
 ```
 Driver-Drowsiness-Detection/
