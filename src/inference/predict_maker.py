@@ -1,0 +1,174 @@
+import numpy as np
+from collections import deque
+import os
+
+# Thử import TFLite runtime; nếu không có thì fallback về heuristic
+try:
+    import tflite_runtime.interpreter as tflite
+    TFLITE_AVAILABLE = True
+except ImportError:
+    try:
+        import tensorflow as tf
+        tflite = tf.lite
+        TFLITE_AVAILABLE = True
+    except ImportError:
+        TFLITE_AVAILABLE = False
+        print("[CẢNH BÁO] Không tìm thấy tflite_runtime hoặc tensorflow. Sẽ sử dụng Thuật toán thay thế (Heuristic Fallback) để mô phỏng suy luận AI.")
+
+class DecisionMaker:
+    def __init__(self, window_size=60, model_path="models/tflite/dms_model_int8.tflite"):
+        """
+        Khởi tạo module Ra quyết định với bộ đệm (Buffer) và suy luận AI đa tầng.
+        - window_size: số lượng khung hình (frame) lưu trong cửa sổ trượt (trung bình 1-2 giây).
+        - model_path: Đường dẫn đến file TFLite model (đã cập nhật sang models/tflite/).
+        """
+        self.window_size = window_size
+        
+        # Khởi tạo các hàng đợi hai đầu (deque) với kích thước cố định
+        self.ear_buffer = deque(maxlen=window_size)
+        self.mar_buffer = deque(maxlen=window_size)
+        self.pitch_buffer = deque(maxlen=window_size)
+        self.yaw_buffer = deque(maxlen=window_size)        # Góc quay ngang đầu (trái/phải)
+        self.pitch_raw_buffer = deque(maxlen=window_size)  # Góc pitch thô có dấu (để phân biệt nhìn lên/xuống)
+        
+        # BỘ LỌC LÀM MƯỢT (Smoothing): Lưu lịch sử 3 trạng thái gần nhất để lấy số đông
+        # giúp phản hồi cực nhanh (~0.5s) trên thiết bị nhúng (Jetson Nano).
+        self.smoothing_window = 3
+        self.state_history = deque(maxlen=self.smoothing_window)
+        
+        # Danh sách các nhãn phân loại đầu ra của hệ thống
+        self.labels = ["Normal", "Drowsy", "Yawning", "Talking", "Distracted"]
+        
+        # === HẰNG SỐ SCALE FEATURES ===
+        # Nhân features lên dải giá trị lớn hơn cho INT8 quantization (khớp với train_model.py)
+        # THỨ TỰ: [ear_mean, mar_mean, mar_var, pitch_var, yaw_abs, pitch_raw_mean]
+        self.feature_scale = np.array([100.0, 50.0, 500.0, 1.0, 1.0, 1.0], dtype=np.float32)
+        
+        self.interpreter = None
+        # Thiết lập TFLite Interpreter nếu có tflite và file tồn tại
+        if TFLITE_AVAILABLE and os.path.exists(model_path):
+            try:
+                self.interpreter = tflite.Interpreter(model_path=model_path)
+                self.interpreter.allocate_tensors()
+                self.input_details = self.interpreter.get_input_details()
+                self.output_details = self.interpreter.get_output_details()
+            except Exception as e:
+                print(f"[LỖI TFLITE] {e}. Chuyển sang Fallback.")
+                self.interpreter = None
+
+    def update_buffer(self, ear, mar, pitch, yaw=0.0, pitch_raw=0.0,
+                      ear_baseline=0.0, mar_baseline=0.0, pitch_raw_baseline=0.0):
+        """
+        Cập nhật dữ liệu vào Buffer trượt theo thời gian.
+        - pitch: góc nghiêng đầu (độ)
+        - yaw: góc quay ngang trái/phải (độ)
+        - pitch_raw: góc pitch thô có dấu (độ), âm = nhìn lên, dương = nhìn xuống
+        - pitch_raw_baseline: giá trị pitch_raw chuẩn khi nhìn thẳng (từ quá trình Calibration)
+        """
+        self.ear_buffer.append(ear - ear_baseline)
+        self.mar_buffer.append(mar - mar_baseline)
+        self.pitch_buffer.append(pitch)
+        self.yaw_buffer.append(yaw)
+        # Lưu độ lệch pitch so với baseline (dương = nhìn xuống, âm = nhìn lên)
+        self.pitch_raw_buffer.append(pitch_raw - pitch_raw_baseline)
+
+    def extract_features(self):
+        """
+        Trích xuất đặc trưng (Features) từ chuỗi thời gian (time-series).
+        Trả về None nếu chưa thu thập đủ số lượng frame theo window_size.
+        """
+        # Trả về rỗng nếu chưa thu thập đủ chuỗi thời gian
+        if len(self.ear_buffer) < self.window_size:
+            return None 
+        
+        ear_array = np.array(self.ear_buffer)
+        mar_array = np.array(self.mar_buffer)
+        pitch_array = np.array(self.pitch_buffer)
+        yaw_array = np.array(self.yaw_buffer)
+        pitch_raw_array = np.array(self.pitch_raw_buffer)
+        
+        ear_mean = np.mean(ear_array)
+        mar_mean = np.mean(mar_array)
+        
+        # Đạo hàm của chuyển động miệng (phát hiện nói chuyện)
+        mar_grad = np.gradient(mar_array)
+        mar_variance = np.var(mar_grad) 
+        
+        pitch_variance = np.var(pitch_array)               # Biến thiên pitch (gật đầu)
+        yaw_mean_abs = np.mean(np.abs(yaw_array))          # Trung bình độ lớn yaw (nhìn ngang)
+        pitch_raw_mean = np.mean(pitch_raw_array)          # Chênh lệch pitch trung bình (+ xuống, - lên)
+        
+        # Đặc trưng thống kê [6 features]
+        features = np.array([[ear_mean, mar_mean, mar_variance, pitch_variance, yaw_mean_abs, pitch_raw_mean]], dtype=np.float32)
+        return features
+
+    def _heuristic_fallback(self, features):
+        """
+        Dự đoán nhãn dựa trên quy tắc toán học (Heuristic) khi không có Model TFLite.
+        Sử dụng ngưỡng theo tiêu chuẩn Cảnh sát giao thông Việt Nam.
+        """
+        ear_mean, mar_mean, mar_var, pitch_var, yaw_abs, pitch_raw_mean = features[0]
+        
+        # Ưu tiên 1: Mắt nhắm → ngủ gật (nguy hiểm nhất)
+        if ear_mean < -0.06:
+            return "Drowsy"
+        
+        # Ưu tiên 2: Kiểm tra mất tập trung theo ngưỡng CSGT
+        # Yaw > 45° (quay ngang) → không nhìn đường
+        if yaw_abs > 45.0:
+            return "Distracted"
+        # Nhìn lên quá 40° hoặc xuống quá 30° → không nhìn đường
+        if pitch_raw_mean < -40.0 or pitch_raw_mean > 30.0:
+            return "Distracted"
+        # Góc chéo: yaw > 30° KẾT HỢP pitch ngang trục > 20° → nhìn chéo sang cạnh
+        if yaw_abs > 30.0 and (pitch_raw_mean < -20.0 or pitch_raw_mean > 15.0):
+            return "Distracted"
+        
+        # Ưu tiên 3: Ngáp
+        if mar_mean > 0.25:
+            return "Yawning"
+        # Ưu tiên 4: Nói chuyện
+        if mar_var > 0.03:
+            return "Talking"
+        # Ưu tiên 5: Mất tập trung do biến thiên pitch
+        if pitch_var > 30.0:
+            return "Distracted"
+            
+        return "Normal"
+
+    def predict_state(self):
+        """
+        Tiến hành chạy mô hình dự đoán (Inference).
+        Ưu tiên TFLite model nếu có, ngược lại dùng Heuristic Fallback.
+        """
+        features = self.extract_features()
+        if features is None:
+            return "Normal"  
+        
+        state = "Normal"
+        # 1. Gọi mạng Neural TFLite nếu có sẵn
+        if self.interpreter is not None:
+            try:
+                # Nhân features với FEATURE_SCALE trước khi truyền vào model TFLite
+                # (Model được train với features đã scale để INT8 không mất độ chính xác)
+                scaled_features = features * self.feature_scale
+                self.interpreter.set_tensor(self.input_details[0]['index'], scaled_features)
+                self.interpreter.invoke()
+                predictions = self.interpreter.get_tensor(self.output_details[0]['index'])
+                predicted_idx = np.argmax(predictions[0])
+                state = self.labels[predicted_idx]
+            except Exception as e:
+                state = self._heuristic_fallback(features)
+        else:
+            # 2. Hoặc mô phỏng AI bằng quy tắc tĩnh toán học
+            state = self._heuristic_fallback(features)
+
+        # 3. BỘ LỌC LÀM MƯỢT (Smoothing): Majority Voting
+        # Lưu trạng thái thô vào lịch sử và lấy trạng thái xuất hiện nhiều nhất
+        self.state_history.append(state)
+        
+        if len(self.state_history) > 0:
+            most_common_state = max(set(self.state_history), key=list(self.state_history).count)
+            return most_common_state
+            
+        return state

@@ -26,3 +26,18 @@ env/
 ENV/
 .idea/
 .vscode/
+
+# ============================
+# DMS - Dự án cụ thể
+# ============================
+# File .dat của dlib rất lớn (>100MB), không nên commit
+models/dlib/
+# Training data (có thể rất lớn, dùng Git LFS hoặc lưu riêng)
+training/data/
+# Video cảnh báo tạm thời
+temp_alert/
+# Logs runtime
+logs/*.log
+# File âm thanh được tạo tự động
+assets/audio/*.mp3
+

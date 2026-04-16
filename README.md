@@ -9,8 +9,7 @@
 [![License](https://img.shields.io/badge/License-MIT-purple.svg)]()
 
 <div align="center">
-  <!-- Vị trí đặt ảnh chụp màn hình dự án thực tế -->
-  <img src="assets/IOT18A-Group5.png" alt="DMS Preview" width="1000"/>
+  <img src="assets/images/IOT18A-Group5.png" alt="DMS Preview" width="1000"/>
 </div>
 
 ## ✨ Tính Năng Nổi Bật
@@ -29,16 +28,54 @@
 - **Cloud & Storage:** Supabase (PostgreSQL / Buckets)
 - **Utilities:** PyGame, gTTS
 
+## 📁 Cấu Trúc Dự Án
+
+```
+Driver-Drowsiness-Detection/
+├── main.py                     # 🚀 Entry point — chạy ứng dụng tại đây
+├── src/
+│   ├── core/                   # Logic nghiệp vụ cốt lõi
+│   │   ├── backend.py          # Kết nối Supabase, đồng bộ dữ liệu
+│   │   ├── calibration.py      # Hiệu chuẩn baseline tài xế
+│   │   └── alert_handler.py    # Quản lý sự kiện & cảnh báo
+│   ├── detection/              # Trích xuất đặc trưng khuôn mặt
+│   │   ├── ear.py              # Eye Aspect Ratio
+│   │   ├── mar.py              # Mouth Aspect Ratio
+│   │   └── head_pose.py        # Góc đầu (Pitch/Yaw/Roll)
+│   ├── inference/              # AI inference
+│   │   └── predict_maker.py    # TFLite model + Heuristic fallback
+│   └── ui/
+│       └── ui_helper.py        # Vẽ overlay lên frame Camera
+├── models/
+│   ├── tflite/                 # dms_model_int8.tflite
+│   └── dlib/                   # shape_predictor + face_recognition .dat
+├── assets/
+│   ├── audio/                  # File âm thanh cảnh báo (.mp3)
+│   └── images/                 # Hình ảnh tĩnh
+├── training/
+│   ├── train_model.py          # Script huấn luyện model
+│   └── data/                   # Dataset (Closed_Eyes, Yawn, head_pose/...)
+├── configs/
+│   └── default_config.py       # Cấu hình trung tâm (ngưỡng, đường dẫn)
+├── tests/                      # Unit tests
+├── logs/                       # Logs runtime (gitignored)
+├── scripts/
+│   └── create_sound.py         # Script tiện ích tạo âm thanh
+├── .env.example                # Mẫu biến môi trường
+└── temp_alert/                 # Lưu tạm video cảnh báo (gitignored)
+```
+
 ## 🚀 Bắt Đầu Nhanh
 
 ### 1. Cài đặt các thư viện phụ thuộc
-Cài đặt trực tiếp qua `pip` trong môi trường ảo của bạn:
 ```bash
 pip install opencv-python numpy dlib pygame gtts supabase python-dotenv imutils scipy tflite-runtime
 ```
 
 ### 2. Chuẩn bị Models & Cấu hình Cloud
-- Tải weights cho Dlib (`shape_predictor_68_face_landmarks.dat` và `dlib_face_recognition_resnet_model_v1.dat`) và đặt vào folder `dlib_shape_predictor/`.
+- Tải weights cho Dlib và đặt vào folder `models/dlib/`:
+  - `shape_predictor_68_face_landmarks.dat`
+  - `dlib_face_recognition_resnet_model_v1.dat`
 - Tạo file `.env` từ `.env.example` và thiết lập kết nối:
 ```bash
 cp .env.example .env
@@ -46,21 +83,29 @@ cp .env.example .env
 ```
 
 ### 3. Vận hành hệ thống
-Khởi động hệ thống tại trung tâm giám sát bằng tập lệnh chính:
 ```bash
-python3 DriverDrowsinessDetection.py
+python3 main.py
 ```
 
-## 💻 Cách Sử Dụng 
+## 💻 Cách Sử Dụng
 
 Sau khi chạy phần mềm, quá trình giám sát sẽ tự động bắt đầu:
 1. **Giao thức học ban đầu:** Trong vài giây đầu, người dùng giữ mặt hướng thẳng để hệ thống đo đạc baseline chuẩn (*Calibration*).
-2. **Kích hoạt tự động:** Mọi hành vi sai phạm nếu diễn ra đủ lâu sẽ báo động cảnh báo với âm thanh và ghi lại đoạn clip 3 giây.
+2. **Kích hoạt tự động:** Mọi hành vi sai phạm nếu diễn ra đủ lâu sẽ báo động cảnh báo với âm thanh và ghi lại đoạn clip bằng chứng.
 
-*Ví dụ thay đổi thông số Buffer cho AI Engine (*tại file nhánh `DriverDrowsinessDetection.py`*):*
+*Ví dụ thay đổi thông số Buffer cho AI Engine (tại `main.py`):*
 ```python
 # Nhỏ số window_size -> Hệ thống sẽ phản hồi nhạy hơn (phù hợp device cấu hình yếu)
-decision_maker = DecisionMaker(window_size=15, model_path="Models/dms_model_int8.tflite")
+decision_maker = DecisionMaker(window_size=15, model_path="models/tflite/dms_model_int8.tflite")
+```
+
+*Điều chỉnh ngưỡng cảnh báo tại `configs/default_config.py`:*
+```python
+ALERT_THRESHOLDS = {
+    "Yawning":    1.0,   # Ngáp liên tục > 1.0s
+    "Drowsy":     1.5,   # Mắt nhắm > 1.5s
+    "Distracted": 2.0,   # Mất tập trung > 2.0s
+}
 ```
 
 ## 🛣 Lộ Trình (Roadmap)
@@ -68,8 +113,9 @@ decision_maker = DecisionMaker(window_size=15, model_path="Models/dms_model_int8
 - [x] Phát hiện các hành vi tiêu biểu của tài xế (Ngáp, Cúi, Nhắm mắt).
 - [x] Train và lượng tử hoá thuật toán INT8.
 - [x] Triển khai Serverless Cloud (Supabase).
+- [x] Tổ chức lại cấu trúc dự án theo chuẩn Python package.
 - [ ] Mở rộng giao diện điều hướng (Web Dashboard cho trung tâm quản trị).
-- [ ] Thích ứng Camera Hồng ngoại (IR) sử dụng trong điều kiện thiều sáng vào ban đêm.
+- [ ] Thích ứng Camera Hồng ngoại (IR) sử dụng trong điều kiện thiêu sáng vào ban đêm.
 
 ## 🤝 Đóng Góp & Giấy Phép
 
