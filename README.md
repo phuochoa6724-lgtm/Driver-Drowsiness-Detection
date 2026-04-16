@@ -60,14 +60,14 @@ Driver-Drowsiness-Detection/
 └── temp_alert/                 # Lưu tạm video cảnh báo (gitignored)
 ```
 
-##  Bắt Đầu Nhanh
+## BẮT ĐẦU NHANH
 
-### 1. Cài đặt các thư viện phụ thuộc
+###   1. Cài đặt các thư viện phụ thuộc
 ```bash
 pip install opencv-python numpy dlib pygame gtts supabase python-dotenv imutils scipy tflite-runtime
 ```
 
-### 2. Chuẩn bị Models & Cấu hình Cloud
+###   2. Chuẩn bị Models & Cấu hình Cloud
 - Tải weights cho Dlib và đặt vào folder `models/dlib/`:
   - `shape_predictor_68_face_landmarks.dat`
   - `dlib_face_recognition_resnet_model_v1.dat`
@@ -76,19 +76,19 @@ pip install opencv-python numpy dlib pygame gtts supabase python-dotenv imutils 
 # Chỉnh sửa file .env để điền SUPABASE_URL và SUPABASE_KEY
 ```
 
-### 3. Vận hành hệ thống
+##    3. Vận hành hệ thống
 ```bash
 python3 main.py
 ```
 
-## Cách Sử Dụng
+## CÁCH SỬ DỤNG
 
 Sau khi chạy phần mềm, quá trình giám sát sẽ tự động bắt đầu:
 1. **Giao thức học ban đầu:** Trong vài giây đầu, người dùng giữ mặt hướng thẳng để hệ thống đo đạc baseline chuẩn (*Calibration*).
 2. **Kích hoạt tự động:** Mọi hành vi sai phạm nếu diễn ra đủ lâu sẽ báo động cảnh báo với âm thanh và ghi lại đoạn clip bằng chứng.
 
 
-## Lộ trình phát triển (Roadmap)
+## LỘ TRÌNH PHÁT TRIỂN
 
 - [x] Phát hiện các hành vi tiêu biểu của tài xế (Ngáp, Cúi, Nhắm mắt).
 - [x] Train và lượng tử hoá thuật toán INT8.
