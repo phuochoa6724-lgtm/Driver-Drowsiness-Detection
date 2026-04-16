@@ -10,7 +10,7 @@
 
 <div align="center">
   <!-- Vị trí đặt ảnh chụp màn hình dự án thực tế -->
-  <img src="/home/nph/Documents/Driver-Drowsiness-Detection/assets/IOT18A-Group5.png" alt="DMS Preview" width="700"/>
+  <img src="assets/IOT18A-Group5.png" alt="DMS Preview" width="1000"/>
 </div>
 
 ## ✨ Tính Năng Nổi Bật
