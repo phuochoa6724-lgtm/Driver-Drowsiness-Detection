@@ -144,7 +144,7 @@ try:
         shape_obj = predictor(gray, driver_rect)
         shape = face_utils.shape_to_np(shape_obj)
         
-        # Tính toán EAR (Mắt) và MAR (Miệng)
+        # Tính toán EAR (Mắt) và MAR thô (Miệng)
         ear = (eye_aspect_ratio(shape[lStart:lEnd]) + eye_aspect_ratio(shape[rStart:rEnd])) / 2.0
         mar = mouth_aspect_ratio(shape[mStart:mEnd])
         
@@ -154,6 +154,13 @@ try:
             image_points[idx] = shape[lm]
         (h_deg, y_deg, p_raw, start_p, end_p, end_p2) = getHeadTiltAndCoords(gray.shape, image_points, frame_height)
         pitch = h_deg[0] if len(h_deg) > 0 else 0.0
+
+        # BÙ MAR THEO GÓC YAW (Yaw Compensation):
+        # Khi đầu quay ngang góc θ, chiều ngang miệng bị co lại theo cos(θ),
+        # làm MAR tăng ảo (miệng trông như đang há dù thực tế không há).
+        # Nhân mar × cos(|yaw|) để triệt tiêu hiệu ứng phối cảnh (perspective foreshortening).
+        yaw_rad = abs(y_deg) * np.pi / 180.0
+        mar_corrected = mar * float(np.cos(yaw_rad))
 
         # --- BƯỚC 5: PHÂN LOẠI TRẠNG THÁI AI (CALIBRATION HOẶC PREDICTION) ---
         display_state, display_color = "Normal", (0,255,0)
@@ -165,12 +172,14 @@ try:
                 calibration_voice_played = True
                 
             # Giai đoạn HIỆU CHUẨN: Học các chỉ số mắt/miệng/đầu bình thường của Driver
-            calibrator.update(ear, mar, p_raw)
+            # Sử dụng mar_corrected (sau khi bù yaw) để baseline cũng được chuẩn hoá theo góc nhìn thẳng
+            calibrator.update(ear, mar_corrected, p_raw)
             calibrator.update_face(np.array(face_encoder.compute_face_descriptor(frame, shape_obj)))
             ui.draw_calibration_progress(frame, calibrator.get_progress())
         else:
             # Giai đoạn NHẬN DIỆN: Đưa thông số vào mô hình AI để dự đoán trạng thái
-            decision_maker.update_buffer(ear, mar, pitch, y_deg, p_raw, 
+            # Sử dụng mar_corrected thay cho mar thô để tránh nhẬn nhầm Yawning khi quay đầu
+            decision_maker.update_buffer(ear, mar_corrected, pitch, y_deg, p_raw, 
                                         calibrator.ear_baseline, 
                                         calibrator.mar_baseline, 
                                         calibrator.pitch_raw_baseline)
