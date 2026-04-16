@@ -27,9 +27,7 @@ ENV/
 .idea/
 .vscode/
 
-# ============================
-# DMS - Dự án cụ thể
-# ============================
+
 # File .dat của dlib
 models/dlib/
 # Training data
