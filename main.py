@@ -144,7 +144,7 @@ try:
         shape_obj = predictor(gray, driver_rect)
         shape = face_utils.shape_to_np(shape_obj)
         
-        # Tính toán EAR (Mắt) và MAR thô (Miệng)
+        # Tính toán EAR (Mắt) và MAR (Miệng)
         ear = (eye_aspect_ratio(shape[lStart:lEnd]) + eye_aspect_ratio(shape[rStart:rEnd])) / 2.0
         mar = mouth_aspect_ratio(shape[mStart:mEnd])
         
