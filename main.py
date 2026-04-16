@@ -1,12 +1,3 @@
-#!/usr/bin/env python
-"""
-Driver Monitoring System (DMS) - Điểm khởi động chính của ứng dụng.
-Cấu trúc dự án đã được tổ chức lại theo chuẩn Python package:
-  - src/core/     : Backend, Calibration, AlertHandler
-  - src/detection/: EAR, MAR, HeadPose
-  - src/inference/: PredictMaker (TFLite AI)
-  - src/ui/       : UIHelper
-"""
 from imutils.video import VideoStream
 from imutils import face_utils
 import imutils
@@ -17,7 +8,7 @@ import numpy as np
 import threading
 from collections import deque
 
-# --- IMPORT CÁC MODULE TÙY CHỈNH (cấu trúc mới) ---
+# --- IMPORT CÁC MODULE TÙY CHỈNH ---
 from src.detection.ear import eye_aspect_ratio
 from src.detection.mar import mouth_aspect_ratio
 from src.detection.head_pose import getHeadTiltAndCoords
@@ -93,7 +84,7 @@ try:
         # Hiển thị đồng hồ thời gian thực
         ui.draw_clock(frame)
         
-        # --- BƯỚC 2: QUẢN LÝ ĐỊNH DANH DRIVER (IDENTIFICATION) ---
+        # --- BƯỚC 2: QUẢN LÝ ĐỊNH DANH DRIVER  ---
         driver_rect = None
         if not calibrator.is_calibrated:
             if len(rects) == 1: driver_rect = rects[0]
@@ -126,10 +117,10 @@ try:
         if driver_rect is not None:
             last_driver_rect = driver_rect
 
-        # --- BƯỚC 3: XỬ LÝ KHI KHÔNG THẤY KHUÔN MẶT (DISTRACTED) ---
+        # --- BƯỚC 3: XỬ LÝ KHI KHÔNG THẤY KHUÔN MẶT  ---
         if driver_rect is None:
             if calibrator.is_calibrated:
-                # Ghi nhận trạng thái mất tập trung (Distracted) khi không thấy mặt
+                # Ghi nhận trạng thái mất tập trung khi không thấy mặt
                 alert_handler.process_state("Distracted", frame, frame_buffer)
                 if alert_handler.current_event == "Distracted":
                     ui.draw_status(frame, "Distracted", (0, 0, 255))

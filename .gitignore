@@ -30,14 +30,15 @@ ENV/
 # ============================
 # DMS - Dự án cụ thể
 # ============================
-# File .dat của dlib rất lớn (>100MB), không nên commit
+# File .dat của dlib
 models/dlib/
-# Training data (có thể rất lớn, dùng Git LFS hoặc lưu riêng)
+# Training data
 training/data/
 # Video cảnh báo tạm thời
 temp_alert/
 # Logs runtime
 logs/*.log
+logs/*.csv
 # File âm thanh được tạo tự động
 assets/audio/*.mp3
 

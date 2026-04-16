@@ -1,4 +1,4 @@
-# 🚘 Driver Drowsiness Detection (DMS)
+# Driver Drowsiness Detection (DMS)
 > Hệ thống giám sát tài xế AI thời gian thực - Cảnh báo thông minh, bảo vệ hành trình.
 
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
@@ -18,7 +18,7 @@
 - **Cảnh báo mất tập trung:** Dựa trên các góc xoay đầu (Head Pose) để nhận diện khi tài xế không nhìn đường hoặc sử dụng điện thoại.
 - **Bám sát cá nhân hóa:** Tích hợp nhận diện Face ID độc lập qua cơ chế *Calibration* giúp điều chỉnh sai số cá nhân.
 - **Phản hồi siêu tốc với Edge-AI:** Triển khai bằng mô hình mạng Neural lượng tử (*INT8*) 8.7KB kết hợp chiến lược *Frame Skipping*, đảm bảo tối đa hiệu suất trên *Jetson Nano*.
-- **Đồng bộ đám mây lập tức:** Cập nhật báo cáo hành trình định kỳ và tự động upload video bằng chứng của tài xế lên hệ thống Supabase.
+- **Đồng bộ đám mây & Lưu trữ Offline:** Cập nhật báo cáo hành trình định kỳ và tự động upload video bằng chứng lên hệ thống Supabase. Khi mất kết nối mạng (Offline), hệ thống tự động lưu trữ bằng chứng vào các file `.csv` trong thư mục `logs/`.
 
 ## 🛠 Công Nghệ Sử Dụng
 
@@ -81,23 +81,14 @@ pip install opencv-python numpy dlib pygame gtts supabase python-dotenv imutils 
 python3 main.py
 ```
 
-## 💻 Cách Sử Dụng
+## Cách Sử Dụng
 
 Sau khi chạy phần mềm, quá trình giám sát sẽ tự động bắt đầu:
 1. **Giao thức học ban đầu:** Trong vài giây đầu, người dùng giữ mặt hướng thẳng để hệ thống đo đạc baseline chuẩn (*Calibration*).
 2. **Kích hoạt tự động:** Mọi hành vi sai phạm nếu diễn ra đủ lâu sẽ báo động cảnh báo với âm thanh và ghi lại đoạn clip bằng chứng.
 
 
-*Điều chỉnh ngưỡng cảnh báo tại `main.py`:*
-```python
-ALERT_THRESHOLDS = {
-    "Yawning":    1.0,   # Ngáp liên tục > 1.0s
-    "Drowsy":     1.5,   # Mắt nhắm > 1.5s
-    "Distracted": 2.0,   # Mất tập trung > 2.0s
-}
-```
-
-## 🛣 Lộ trình phát triển (Roadmap)
+## Lộ trình phát triển (Roadmap)
 
 - [x] Phát hiện các hành vi tiêu biểu của tài xế (Ngáp, Cúi, Nhắm mắt).
 - [x] Train và lượng tử hoá thuật toán INT8.
@@ -105,6 +96,8 @@ ALERT_THRESHOLDS = {
 - [x] Tổ chức lại cấu trúc dự án theo chuẩn Python package.
 - [ ] Mở rộng giao diện điều hướng (Web Dashboard cho trung tâm quản trị).
 - [ ] Thích ứng Camera Hồng ngoại (IR) sử dụng trong điều kiện thiêu sáng vào ban đêm.
+
+
 
 
 *Phát triển bởi [IoT-Group 5-K18-IUH] và dưới sự hướng dẫn của Thầy Phạm Việt Thành- 2026*
