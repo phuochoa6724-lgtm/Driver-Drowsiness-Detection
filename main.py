@@ -7,6 +7,10 @@ import cv2
 import numpy as np
 import threading
 from collections import deque
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # --- IMPORT CÁC MODULE TÙY CHỈNH ---
 from src.detection.ear import eye_aspect_ratio
@@ -57,7 +61,17 @@ frame_buffer = deque(maxlen=60)
 
 # Khởi động Camera
 print("[INFO] Khởi động hệ thống Driver Monitoring System (DMS)...")
-vs = VideoStream(src=0).start()
+
+# Lấy nguồn Camera từ file .env (mặc định là 0 - camera laptop)
+camera_src_env = os.getenv("CAMERA_SOURCE", "0")
+try:
+    # Nếu là index số (webcam USB), cần ép qua kiểu int
+    camera_src = int(camera_src_env)
+except ValueError:
+    # Nếu là link IP WebCam (http/rtsp), sẽ giữ nguyên dạng string
+    camera_src = camera_src_env
+
+vs = VideoStream(src=camera_src).start()
 time.sleep(2.0)
 
 # Khởi tạo biến theo dõi khuôn mặt tài xế

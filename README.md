@@ -70,9 +70,10 @@ pip install opencv-python numpy dlib pygame gtts supabase python-dotenv imutils 
 - Tải weights cho Dlib và đặt vào folder `models/dlib/`:
   - `shape_predictor_68_face_landmarks.dat`
   - `dlib_face_recognition_resnet_model_v1.dat`
-- Tạo file `.env`  và thiết lập kết nối:
+- Tạo file `.env` từ file mẫu `.env.example`:
 ```bash
-# Chỉnh sửa file .env để điền SUPABASE_URL và SUPABASE_KEY
+cp .env.example .env
+# Sau đó chỉnh sửa file .env để điền SUPABASE_URL, SUPABASE_KEY và cấu hình CAMERA_SOURCE
 ```
 
 ##    3. Vận hành hệ thống
